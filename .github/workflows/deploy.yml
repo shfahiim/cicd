@@ -174,19 +174,25 @@ jobs:
 
     - name: Deploy to Ubuntu Server
       uses: appleboy/ssh-action@v1.0.0
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       with:
         host: ${{ secrets.SERVER_HOST }}
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SERVER_SSH_KEY }}
+        envs: DOCKER_USERNAME
         script: |
           # Navigate to application directory
           cd ~/microservices-app || exit 1
           
+          # Update .env file with Docker username
+          echo "DOCKER_USERNAME=${DOCKER_USERNAME}" > .env
+          
           # Pull latest images
           echo "Pulling latest Docker images..."
-          docker pull ${{ secrets.DOCKER_USERNAME }}/user-service:latest
-          docker pull ${{ secrets.DOCKER_USERNAME }}/product-service:latest
-          docker pull ${{ secrets.DOCKER_USERNAME }}/order-service:latest
+          docker pull ${DOCKER_USERNAME}/user-service:latest
+          docker pull ${DOCKER_USERNAME}/product-service:latest
+          docker pull ${DOCKER_USERNAME}/order-service:latest
           
           # Stop and remove old containers (except MongoDB)
           echo "Stopping old containers..."
@@ -199,7 +205,7 @@ jobs:
           
           # Wait for services to be healthy
           echo "Waiting for services to be healthy..."
-          sleep 10
+          sleep 15
           
           # Show running containers
           echo "Running containers:"

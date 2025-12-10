@@ -1,0 +1,32 @@
+{
+  "name": "microservice-ci-cd",
+  "version": "1.0.0",
+  "description": "Complete microservices application with CI/CD pipeline",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "cd user-service && npm install && cd ../product-service && npm install && cd ../order-service && npm install",
+    "start": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "logs": "docker-compose logs -f",
+    "test": "./test-api.sh localhost",
+    "test-prod": "./test-api.sh 161.118.236.136",
+    "build": "docker-compose build",
+    "restart": "docker-compose restart",
+    "clean": "docker-compose down -v && docker system prune -f"
+  },
+  "keywords": [
+    "microservices",
+    "docker",
+    "nodejs",
+    "mongodb",
+    "ci-cd",
+    "github-actions",
+    "devops"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shfahiim/cicd.git"
+  }
+}

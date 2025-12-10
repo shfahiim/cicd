@@ -63,9 +63,9 @@ check_service() {
     fi
 }
 
-check_service "User Service" 3001
-check_service "Order Service" 3002
-check_service "Product Service" 3003
+check_service "User Service" 3002
+check_service "Order Service" 3003
+check_service "Product Service" 3004
 
 echo ""
 echo -e "${BLUE}Container Status:${NC}"
@@ -77,9 +77,9 @@ echo -e "${GREEN}║     Services are up and running!       ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${BLUE}Service URLs:${NC}"
-echo "  • User Service:    http://localhost:3001"
-echo "  • Order Service:   http://localhost:3002"
-echo "  • Product Service: http://localhost:3003"
+echo "  • User Service:    http://localhost:3002"
+echo "  • Order Service:   http://localhost:3003"
+echo "  • Product Service: http://localhost:3004"
 echo ""
 echo -e "${BLUE}Quick Commands:${NC}"
 echo "  • View logs:       docker compose logs -f"

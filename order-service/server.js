@@ -5,10 +5,10 @@ const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.PORT || 3003;
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/microservices';
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3001';
-const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:3003';
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3002';
+const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL || 'http://localhost:3004';
 
 // Middleware
 app.use(cors());

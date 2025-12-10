@@ -46,13 +46,13 @@ make_request() {
 
 # Health checks
 echo -e "${YELLOW}=== Health Checks ===${NC}"
-make_request "GET" "http://${SERVER_IP}:3001/health" "" "User Service Health"
-make_request "GET" "http://${SERVER_IP}:3002/health" "" "Order Service Health"
-make_request "GET" "http://${SERVER_IP}:3003/health" "" "Product Service Health"
+make_request "GET" "http://${SERVER_IP}:3002/health" "" "User Service Health"
+make_request "GET" "http://${SERVER_IP}:3003/health" "" "Order Service Health"
+make_request "GET" "http://${SERVER_IP}:3004/health" "" "Product Service Health"
 
 # Create a user
 echo -e "${YELLOW}=== User Service Tests ===${NC}"
-user_response=$(curl -s -X POST http://${SERVER_IP}:3001/users \
+user_response=$(curl -s -X POST http://${SERVER_IP}:3002/users \
     -H "Content-Type: application/json" \
     -d '{"name":"Test User","email":"test@example.com"}')
 
@@ -65,11 +65,11 @@ else
 fi
 echo ""
 
-make_request "GET" "http://${SERVER_IP}:3001/users" "" "Get All Users"
+make_request "GET" "http://${SERVER_IP}:3002/users" "" "Get All Users"
 
 # Create a product
 echo -e "${YELLOW}=== Product Service Tests ===${NC}"
-product_response=$(curl -s -X POST http://${SERVER_IP}:3003/products \
+product_response=$(curl -s -X POST http://${SERVER_IP}:3004/products \
     -H "Content-Type: application/json" \
     -d '{"name":"Test Laptop","price":1299.99,"stock":50,"description":"A powerful laptop"}')
 
@@ -82,23 +82,23 @@ else
 fi
 echo ""
 
-make_request "GET" "http://${SERVER_IP}:3003/products" "" "Get All Products"
+make_request "GET" "http://${SERVER_IP}:3004/products" "" "Get All Products"
 
 # Get actual IDs if creation failed
 if [ -z "$user_id" ]; then
-    users=$(curl -s http://${SERVER_IP}:3001/users)
+    users=$(curl -s http://${SERVER_IP}:3002/users)
     user_id=$(echo $users | grep -o '"_id":"[^"]*"' | head -1 | cut -d'"' -f4)
 fi
 
 if [ -z "$product_id" ]; then
-    products=$(curl -s http://${SERVER_IP}:3003/products)
+    products=$(curl -s http://${SERVER_IP}:3004/products)
     product_id=$(echo $products | grep -o '"_id":"[^"]*"' | head -1 | cut -d'"' -f4)
 fi
 
 # Create an order (with inter-service communication)
 echo -e "${YELLOW}=== Order Service Tests (Inter-service Communication) ===${NC}"
 if [ ! -z "$user_id" ] && [ ! -z "$product_id" ]; then
-    make_request "POST" "http://${SERVER_IP}:3002/orders" \
+    make_request "POST" "http://${SERVER_IP}:3003/orders" \
         "{\"userId\":\"${user_id}\",\"productId\":\"${product_id}\",\"quantity\":2}" \
         "Create Order (validates user & product via inter-service calls)"
 else
@@ -106,7 +106,7 @@ else
     echo ""
 fi
 
-make_request "GET" "http://${SERVER_IP}:3002/orders" "" "Get All Orders"
+make_request "GET" "http://${SERVER_IP}:3003/orders" "" "Get All Orders"
 
 echo -e "${GREEN}==================================${NC}"
 echo -e "${GREEN}✓ API Testing Complete!${NC}"

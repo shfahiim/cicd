@@ -4,9 +4,9 @@ A complete microservices architecture with GitHub Actions CI/CD pipeline.
 
 ## Architecture
 This project consists of 3 microservices:
-- **User Service** (Port 3001) - Manages user data
-- **Order Service** (Port 3002) - Manages orders (communicates with User & Product services)
-- **Product Service** (Port 3003) - Manages products
+- **User Service** (Port 3002) - Manages user data
+- **Order Service** (Port 3003) - Manages orders (communicates with User & Product services)
+- **Product Service** (Port 3004) - Manages products
 
 ## Tech Stack
 - Node.js & Express
@@ -16,17 +16,17 @@ This project consists of 3 microservices:
 
 ## Services Overview
 
-### User Service (Port 3001)
+### User Service (Port 3002)
 - `GET /users` - Get all users
 - `POST /users` - Create a new user
 - `GET /health` - Health check
 
-### Order Service (Port 3002)
+### Order Service (Port 3003)
 - `GET /orders` - Get all orders
 - `POST /orders` - Create a new order (validates user and product)
 - `GET /health` - Health check
 
-### Product Service (Port 3003)
+### Product Service (Port 3004)
 - `GET /products` - Get all products
 - `POST /products` - Create a new product
 - `GET /health` - Health check
@@ -70,21 +70,21 @@ docker-compose down
 
 ### Create a User
 ```bash
-curl -X POST http://localhost:3001/users \
+curl -X POST http://localhost:3002/users \
   -H "Content-Type: application/json" \
   -d '{"name":"John Doe","email":"john@example.com"}'
 ```
 
 ### Create a Product
 ```bash
-curl -X POST http://localhost:3003/products \
+curl -X POST http://localhost:3004/products \
   -H "Content-Type: application/json" \
   -d '{"name":"Laptop","price":999.99,"stock":10}'
 ```
 
 ### Create an Order
 ```bash
-curl -X POST http://localhost:3002/orders \
+curl -X POST http://localhost:3003/orders \
   -H "Content-Type: application/json" \
   -d '{"userId":"<user_id>","productId":"<product_id>","quantity":2}'
 ```

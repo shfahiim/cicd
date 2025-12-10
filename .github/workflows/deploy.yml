@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline with Automated Tests
 
 on:
   push:
@@ -10,9 +10,112 @@ env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
 
 jobs:
+  test:
+    name: Run Automated Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Start services for testing
+      run: |
+        docker compose up -d
+        echo "Waiting for services to be ready..."
+        sleep 30
+
+    - name: Check service health
+      run: |
+        echo "Testing User Service..."
+        curl -f http://localhost:3002/health || exit 1
+        echo "✓ User Service is healthy"
+        
+        echo "Testing Order Service..."
+        curl -f http://localhost:3003/health || exit 1
+        echo "✓ Order Service is healthy"
+        
+        echo "Testing Product Service..."
+        curl -f http://localhost:3004/health || exit 1
+        echo "✓ Product Service is healthy"
+
+    - name: Run API Tests
+      run: |
+        # Test User Service
+        echo "Creating test user..."
+        USER_RESPONSE=$(curl -s -X POST http://localhost:3002/users \
+          -H "Content-Type: application/json" \
+          -d '{"name":"Test User","email":"test-'$(date +%s)'@example.com"}')
+        echo "User Response: $USER_RESPONSE"
+        
+        # Extract user ID
+        USER_ID=$(echo $USER_RESPONSE | grep -o '"_id":"[^"]*"' | cut -d'"' -f4)
+        echo "User ID: $USER_ID"
+        
+        if [ -z "$USER_ID" ]; then
+          echo "Failed to create user"
+          exit 1
+        fi
+        echo "✓ User created successfully"
+        
+        # Test Product Service
+        echo "Creating test product..."
+        PRODUCT_RESPONSE=$(curl -s -X POST http://localhost:3004/products \
+          -H "Content-Type: application/json" \
+          -d '{"name":"Test Laptop","price":999.99,"stock":100}')
+        echo "Product Response: $PRODUCT_RESPONSE"
+        
+        # Extract product ID
+        PRODUCT_ID=$(echo $PRODUCT_RESPONSE | grep -o '"_id":"[^"]*"' | cut -d'"' -f4)
+        echo "Product ID: $PRODUCT_ID"
+        
+        if [ -z "$PRODUCT_ID" ]; then
+          echo "Failed to create product"
+          exit 1
+        fi
+        echo "✓ Product created successfully"
+        
+        # Test Order Service (inter-service communication)
+        echo "Creating test order..."
+        ORDER_RESPONSE=$(curl -s -X POST http://localhost:3003/orders \
+          -H "Content-Type: application/json" \
+          -d '{"userId":"'"$USER_ID"'","productId":"'"$PRODUCT_ID"'","quantity":2}')
+        echo "Order Response: $ORDER_RESPONSE"
+        
+        # Check if order was created
+        ORDER_ID=$(echo $ORDER_RESPONSE | grep -o '"_id":"[^"]*"' | cut -d'"' -f4)
+        
+        if [ -z "$ORDER_ID" ]; then
+          echo "Failed to create order"
+          exit 1
+        fi
+        echo "✓ Order created successfully (inter-service communication working!)"
+        
+        echo "✓ All API tests passed!"
+
+    - name: Show logs on failure
+      if: failure()
+      run: |
+        echo "=== User Service Logs ==="
+        docker logs user-service
+        echo "=== Product Service Logs ==="
+        docker logs product-service
+        echo "=== Order Service Logs ==="
+        docker logs order-service
+        echo "=== MongoDB Logs ==="
+        docker logs mongodb
+
+    - name: Stop services
+      if: always()
+      run: docker compose down
+
   build-and-push:
     name: Build and Push Docker Images
+    needs: test
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     
     steps:
     - name: Checkout code
@@ -61,10 +164,9 @@ jobs:
         cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/order-service:buildcache,mode=max
 
   deploy:
-    name: Deploy to Server
+    name: Deploy to Production Server
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     
     steps:
     - name: Checkout code
@@ -105,11 +207,33 @@ jobs:
           
           # Check service health
           echo "Checking service health..."
-          curl -f http://localhost:3001/health || echo "User service health check failed"
-          curl -f http://localhost:3002/health || echo "Order service health check failed"
-          curl -f http://localhost:3003/health || echo "Product service health check failed"
+          curl -f http://localhost:3002/health || echo "User service health check failed"
+          curl -f http://localhost:3003/health || echo "Order service health check failed"
+          curl -f http://localhost:3004/health || echo "Product service health check failed"
           
           echo "Deployment completed successfully!"
+
+    - name: Run Production Smoke Tests
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          echo "Running production smoke tests..."
+          
+          # Test health endpoints
+          echo "Testing health endpoints..."
+          curl -f http://localhost:3002/health || exit 1
+          echo "✓ User Service healthy"
+          
+          curl -f http://localhost:3003/health || exit 1
+          echo "✓ Order Service healthy"
+          
+          curl -f http://localhost:3004/health || exit 1
+          echo "✓ Product Service healthy"
+          
+          echo "✓ All production health checks passed!"
 
     - name: Verify Deployment
       uses: appleboy/ssh-action@v1.0.0
@@ -125,3 +249,18 @@ jobs:
           docker logs --tail 20 user-service
           docker logs --tail 20 product-service
           docker logs --tail 20 order-service
+          
+    - name: Deployment Summary
+      if: success()
+      run: |
+        echo "🎉 Deployment Successful!"
+        echo "================================"
+        echo "✓ Tests passed"
+        echo "✓ Images built and pushed"
+        echo "✓ Deployed to production"
+        echo "✓ Health checks passed"
+        echo ""
+        echo "Services available at:"
+        echo "• User Service:    http://${{ secrets.SERVER_HOST }}:3002"
+        echo "• Order Service:   http://${{ secrets.SERVER_HOST }}:3003"
+        echo "• Product Service: http://${{ secrets.SERVER_HOST }}:3004"
